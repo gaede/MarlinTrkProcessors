@@ -17,6 +17,10 @@
 #include <gear/ZPlanarParameters.h>
 #include <gear/ZPlanarLayerLayout.h>
 
+#include "kaldet/MeasurementSurfaceStore.h"
+#include "kaldet/MeasurementSurface.h"
+#include "kaldet/ICoordinateSystem.h"
+
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
 #include "marlin/ProcessorEventSeeder.h"
@@ -46,12 +50,12 @@ SimplePlanarDigiProcessor::SimplePlanarDigiProcessor() : Processor("SimplePlanar
   
   registerProcessorParameter( "PointResolutionRPhi" ,
                              "R-Phi Resolution"  ,
-                             _pointResoRPhi ,
+                             _pointResU ,
                              float(0.0040)) ;
   
   registerProcessorParameter( "PointResolutionZ" , 
                              "Z Resolution" ,
-                             _pointResoZ ,
+                             _pointResV ,
                              float(0.0040));
   
   registerProcessorParameter( "Ladder_Number_encoded_in_cellID" , 
@@ -105,6 +109,7 @@ void SimplePlanarDigiProcessor::init() {
   _rng = gsl_rng_alloc(gsl_rng_ranlxs2);
   Global::EVENTSEEDER->registerProcessor(this);
   
+  GearExtensions::MeasurementSurfaceStore::Instance().initialise(Global::GEAR);
   
 }
 
@@ -142,7 +147,7 @@ void SimplePlanarDigiProcessor::processEvent( LCEvent * evt ) {
     int nSimHits = STHcol->getNumberOfElements()  ;
       
     //get geometry info
-    
+        
     const gear::ZPlanarParameters* gearDet = NULL ;
     
     int det_id = 0 ;
@@ -187,15 +192,24 @@ void SimplePlanarDigiProcessor::processEvent( LCEvent * evt ) {
       
       SimTrackerHit* SimTHit = dynamic_cast<SimTrackerHit*>( STHcol->getElementAt( i ) ) ;
       
+     
+      
+
+      
       const int celId = SimTHit->getCellID0() ;
       
       const double *pos ;
       pos =  SimTHit->getPosition() ;  
       
       double smearedPos[3];
+
+      GearExtensions::MeasurementSurface* ms = GearExtensions::MeasurementSurfaceStore::Instance().GetMeasurementSurface( SimTHit->getCellID0() );
+      TVector3 globalPoint(pos[0],pos[1],pos[2]);
+      TVector3 localPoint = ms->getCoordinateSystem()->getLocalPoint(globalPoint);
       
+    
       gear::Vector3D hitvec(pos[0],pos[1],pos[2]);
-      gear::Vector3D smearedhitvec(pos[0],pos[1],pos[2]);
+      //      gear::Vector3D smearedhitvec(pos[0],pos[1],pos[2]);
       
       int layerNumber = 0 ;
       int ladderNumber = 0 ;
@@ -264,8 +278,11 @@ void SimplePlanarDigiProcessor::processEvent( LCEvent * evt ) {
       
       double PhiInLocal = hitvec.phi() - ladderPhi;
       
-      double u = (hitvec.rho() * sin(PhiInLocal) - sensitive_offset );
-       
+      //      double u = (hitvec.rho() * sin(PhiInLocal) - sensitive_offset );
+ 
+      double u = localPoint[0];
+      double v = localPoint[1];
+      
       streamlog_out(DEBUG3) << "Hit = "<< i << " has celId " << celId << " layer number = " << layerNumber << " ladderNumber = " << ladderNumber << endl;
       
       streamlog_out(DEBUG3) <<"Position of hit before smearing = "<<pos[0]<<" "<<pos[1]<<" "<<pos[2]<< " r = " << hitvec.rho() << endl;
@@ -276,6 +293,8 @@ void SimplePlanarDigiProcessor::processEvent( LCEvent * evt ) {
       << "  ladderIndex: " << ladderNumber 
       << "  half ladder width " << sensitive_width * 0.5 
       << "  u: " <<  u
+      << "  half ladder length " << sensitive_length * 0.5 
+      << "  v: " <<  v
       << "  layer sensitive_offset " << sensitive_offset
       << "  layer phi0 " << layerLayout.getPhi0( layerNumber )
       << "  phi: " <<  hitvec.phi()
@@ -286,37 +305,47 @@ void SimplePlanarDigiProcessor::processEvent( LCEvent * evt ) {
       << "  ladder r: " << ladder_r
       << std::endl ;
       
-      if( u > sensitive_width * 0.5 || u < -sensitive_width * 0.5)
-        {
+      if( u > sensitive_width * 0.5 || u < -sensitive_width * 0.5) {
         streamlog_out(DEBUG4) << "hit not in sensitive: u: " << u << " half ladder width = " << sensitive_width * 0.5 << std::endl;
-        }
+      }
+
+      if( v > sensitive_length * 0.5 || v < -sensitive_length * 0.5) {
+        streamlog_out(DEBUG4) << "hit not in sensitive: v: " << v << " half ladder width = " << sensitive_width * 0.5 << std::endl;
+      }
+
       
       int  tries = 0;              
       // try to smear the hit within the ladder
       bool accept_hit = false;
       
-      double rPhiSmear(0) ;
-      double zSmear(0) ;
+      double uSmear(0) ;
+      double vSmear(0) ;
       
-      while( tries < 100 )
-        {
+      while( tries < 100 ) {
         
         if(tries > 0) streamlog_out(DEBUG0) << "retry smearing for " << layerNumber << " " << ladderNumber << " : retries " << tries << std::endl;
         
-        rPhiSmear  = gsl_ran_gaussian(_rng, _pointResoRPhi);
+        uSmear  = gsl_ran_gaussian(_rng, _pointResU);
         
-        if( (u+rPhiSmear) < sensitive_width * 0.5 && (u+rPhiSmear) > -sensitive_width * 0.5 && (hitvec.z()+zSmear) < sensitive_length * 0.5 && (hitvec.z()+zSmear) > -sensitive_length * 0.5) 
+        // note this assumes that origin is at the centre line of the sensor 
+        if( (u+uSmear) < sensitive_width * 0.5 && (u+uSmear) > -sensitive_width * 0.5 && (v+vSmear) < sensitive_length * 0.5 && (v+vSmear) > -sensitive_length * 0.5) 
           //          if( true )
-          {
+            {
           accept_hit =true;
-          zSmear  = gsl_ran_gaussian(_rng, _pointResoZ);
+ 
+          vSmear  = gsl_ran_gaussian(_rng, _pointResV);
           
+//          //find smearing for x and y, so that hit is smeared along ladder plane
+//          smearedPos[0] = hitvec.x() + uSmear * cos(ladder_incline);
+//          smearedPos[1] = hitvec.y() + uSmear * sin(ladder_incline); 
+//          smearedPos[2] = hitvec.z() + vSmear;
           
-          //find smearing for x and y, so that hit is smeared along ladder plane
-          smearedPos[0] = hitvec.x() + rPhiSmear * cos(ladder_incline);
-          smearedPos[1] = hitvec.y() + rPhiSmear * sin(ladder_incline); 
-          smearedPos[2] = hitvec.z() + zSmear;
-          
+          // u coordinate 
+          localPoint[0] += gsl_ran_gaussian(_rng, _pointResU);
+         
+          // v coordinate NOTE for strip this must be done properly 
+          localPoint[1] += gsl_ran_gaussian(_rng, _pointResV);
+                    
           break;
           
           }
@@ -328,7 +357,15 @@ void SimplePlanarDigiProcessor::processEvent( LCEvent * evt ) {
         streamlog_out(DEBUG4) << "hit could not be smeared within ladder after 100 tries: hit dropped"  << std::endl;
         continue; 
         } // 
+
+
+      // convert back to global pos for TrackerHitPlaneImpl
+      // note for strip hits this needs to be done properly where the local v coordinate is set to the centre of the strip
+      globalPoint = ms->getCoordinateSystem()->getGlobalPoint(localPoint);
       
+      for (int ipos=0; ipos<3; ++ipos) {
+        smearedPos[ipos] = globalPoint[ipos];
+      }
       
       //store hit variables
       TrackerHitPlaneImpl* trkHit = new TrackerHitPlaneImpl ;
@@ -337,8 +374,8 @@ void SimplePlanarDigiProcessor::processEvent( LCEvent * evt ) {
             
       streamlog_out(DEBUG3) <<"Position of hit after smearing = "<<smearedPos[0]<<" "<<smearedPos[1]<<" "<<smearedPos[2]
       << " :" 
-      << "  u: " <<  u+rPhiSmear
-      << "  v: " <<  hitvec.z()+zSmear
+      << "  u: " <<  localPoint[0]
+      << "  v: " <<  localPoint[1]
       << std::endl ;
       
       
@@ -351,7 +388,8 @@ void SimplePlanarDigiProcessor::processEvent( LCEvent * evt ) {
       cellid_encoder.setCellID( trkHit ) ;
       
       trkHit->setPosition( smearedPos ) ;
-      
+
+      //FIXME: the angles should be set using the measurement layer as well 
       float u_direction[2] ;
       
       u_direction[0] = M_PI/2.0 ;
@@ -364,12 +402,12 @@ void SimplePlanarDigiProcessor::processEvent( LCEvent * evt ) {
       trkHit->setU( u_direction ) ;
       trkHit->setV( v_direction ) ;
       
-      trkHit->setdU( _pointResoRPhi ) ;
-      trkHit->setdV( _pointResoZ ) ;
+      trkHit->setdU( _pointResU ) ;
+      trkHit->setdV( _pointResV ) ;
       
       trkHit->setEDep( edep ) ;
       
-      //      float covMat[TRKHITNCOVMATRIX]={0.,0.,_pointResoRPhi*_pointResoRPhi,0.,0.,_pointResoZ*_pointResoZ};
+      //      float covMat[TRKHITNCOVMATRIX]={0.,0.,_pointResU*_pointResU,0.,0.,_pointResV*_pointResV};
       //      trkHit->setCovMatrix(covMat);      
       
       //          push back the SimTHit for this TrackerHit
