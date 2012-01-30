@@ -109,7 +109,7 @@ void SimplePlanarDigiProcessor::init() {
   _rng = gsl_rng_alloc(gsl_rng_ranlxs2);
   Global::EVENTSEEDER->registerProcessor(this);
   
-  GearExtensions::MeasurementSurfaceStore::Instance().initialise(Global::GEAR);
+  MarlinTrk::GearExtensions::MeasurementSurfaceStore::Instance().initialise(Global::GEAR);
   
 }
 
@@ -203,9 +203,10 @@ void SimplePlanarDigiProcessor::processEvent( LCEvent * evt ) {
       
       double smearedPos[3];
 
-      GearExtensions::MeasurementSurface* ms = GearExtensions::MeasurementSurfaceStore::Instance().GetMeasurementSurface( SimTHit->getCellID0() );
-      TVector3 globalPoint(pos[0],pos[1],pos[2]);
-      TVector3 localPoint = ms->getCoordinateSystem()->getLocalPoint(globalPoint);
+      MarlinTrk::GearExtensions::MeasurementSurface* ms = MarlinTrk::GearExtensions::MeasurementSurfaceStore::Instance().GetMeasurementSurface( SimTHit->getCellID0() );
+
+      CLHEP::Hep3Vector globalPoint(pos[0],pos[1],pos[2]);
+      CLHEP::Hep3Vector localPoint = ms->getCoordinateSystem()->getLocalPoint(globalPoint);
       
     
       gear::Vector3D hitvec(pos[0],pos[1],pos[2]);
@@ -408,8 +409,8 @@ void SimplePlanarDigiProcessor::processEvent( LCEvent * evt ) {
       << std::endl ;
 
       //      TRotation r = ms->getCoordinateSystem()->getR();
-      TVector3 x(1.0,0.0,0.0);
-      TVector3 y(0.0,1.0,0.0);
+      CLHEP::Hep3Vector x(1.0,0.0,0.0);
+      CLHEP::Hep3Vector y(0.0,1.0,0.0);
       
 //      TVector3 u_vec = r*x;
 //      TVector3 v_vec = r*y;
