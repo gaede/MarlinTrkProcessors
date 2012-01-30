@@ -20,6 +20,7 @@
 #include "MarlinTrk/util/MeasurementSurfaceStore.h"
 #include "MarlinTrk/util/MeasurementSurface.h"
 #include "MarlinTrk/util/ICoordinateSystem.h"
+#include "MarlinTrk/util/CartesianCoordinateSystem.h"
 
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
@@ -393,15 +394,19 @@ void SimplePlanarDigiProcessor::processEvent( LCEvent * evt ) {
       
       trkHit->setPosition( smearedPos ) ;
 
-      //FIXME: the angles should be set using the measurement layer as well 
+      
+      MarlinTrk::GearExtensions::CartesianCoordinateSystem* cartesian = dynamic_cast< MarlinTrk::GearExtensions::CartesianCoordinateSystem* >( ms->getCoordinateSystem() ); 
+      CLHEP::Hep3Vector uVec = cartesian->getLocalXAxis();
+      CLHEP::Hep3Vector vVec = cartesian->getLocalYAxis();
+      
       float u_direction[2] ;
       
-      u_direction[0] = M_PI/2.0 ;
-      u_direction[1] = ladder_incline ;
+      u_direction[0] = uVec.theta();
+      u_direction[1] = uVec.phi();
       
       float v_direction[2] ;
-      v_direction[0] = 0.0 ;
-      v_direction[1] = 0.0 ;
+      v_direction[0] = vVec.theta();
+      v_direction[1] = vVec.phi();
       
       streamlog_out(DEBUG3) 
       << " U[0] = "<< u_direction[0] << " U[1] = "<< u_direction[1] 
