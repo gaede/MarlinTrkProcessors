@@ -17,9 +17,9 @@
 #include <gear/ZPlanarParameters.h>
 #include <gear/ZPlanarLayerLayout.h>
 
-#include "kaldet/MeasurementSurfaceStore.h"
-#include "kaldet/MeasurementSurface.h"
-#include "kaldet/ICoordinateSystem.h"
+#include "MarlinTrk/util/MeasurementSurfaceStore.h"
+#include "MarlinTrk/util/MeasurementSurface.h"
+#include "MarlinTrk/util/ICoordinateSystem.h"
 
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
@@ -278,8 +278,9 @@ void SimplePlanarDigiProcessor::processEvent( LCEvent * evt ) {
       
       double PhiInLocal = hitvec.phi() - ladderPhi;
       
-      //      double u = (hitvec.rho() * sin(PhiInLocal) - sensitive_offset );
- 
+//      double u = (hitvec.rho() * sin(PhiInLocal) - sensitive_offset );
+//      double v = hitvec.z();
+            
       double u = localPoint[0];
       double v = localPoint[1];
       
@@ -353,10 +354,10 @@ void SimplePlanarDigiProcessor::processEvent( LCEvent * evt ) {
         }
       
       if( accept_hit == false ) 
-        {
+          {
         streamlog_out(DEBUG4) << "hit could not be smeared within ladder after 100 tries: hit dropped"  << std::endl;
         continue; 
-        } // 
+          } // 
 
 
       // convert back to global pos for TrackerHitPlaneImpl
@@ -376,6 +377,8 @@ void SimplePlanarDigiProcessor::processEvent( LCEvent * evt ) {
       << " :" 
       << "  u: " <<  localPoint[0]
       << "  v: " <<  localPoint[1]
+//      << "  u: " <<  u+uSmear
+//      << "  v: " <<  v+vSmear
       << std::endl ;
       
       
@@ -398,6 +401,30 @@ void SimplePlanarDigiProcessor::processEvent( LCEvent * evt ) {
       float v_direction[2] ;
       v_direction[0] = 0.0 ;
       v_direction[1] = 0.0 ;
+      
+      streamlog_out(DEBUG3) 
+      << " U[0] = "<< u_direction[0] << " U[1] = "<< u_direction[1] 
+      << " V[0] = "<< v_direction[0] << " V[1] = "<< v_direction[1]
+      << std::endl ;
+
+      //      TRotation r = ms->getCoordinateSystem()->getR();
+      TVector3 x(1.0,0.0,0.0);
+      TVector3 y(0.0,1.0,0.0);
+      
+//      TVector3 u_vec = r*x;
+//      TVector3 v_vec = r*y;
+      
+//      streamlog_out(DEBUG3) 
+//      << " U[0] = "<< u_vec.Theta() << " U[1] = "<< u_vec.Phi() 
+//      << " V[0] = "<< v_vec.Theta() << " V[1] = "<< v_vec.Phi() 
+//      << std::endl ;
+
+//      streamlog_out(DEBUG3) 
+//      << " U[0] = "<< ms->getCoordinateSystem()->getR().ThetaX() << " U[1] = "<< ms->getCoordinateSystem()->getR().PhiX() 
+//      << " V[0] = "<< ms->getCoordinateSystem()->getR().ThetaY() << " V[1] = "<< ms->getCoordinateSystem()->getR().PhiY() 
+//      << std::endl ;
+
+      
       
       trkHit->setU( u_direction ) ;
       trkHit->setV( v_direction ) ;
