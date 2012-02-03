@@ -123,6 +123,9 @@ void SimplePlanarTestDigiProcessor::processEvent( LCEvent * evt ) {
   
   if( STHcol != 0 ){    
     
+    unsigned nCreatedHits=0;
+    unsigned nDismissedHits=0;
+    
     LCCollectionVec* trkhitVec = new LCCollectionVec( LCIO::TRACKERHITPLANE )  ;
     
     LCCollectionVec* relCol = new LCCollectionVec(LCIO::LCRELATION);
@@ -171,18 +174,7 @@ void SimplePlanarTestDigiProcessor::processEvent( LCEvent * evt ) {
       
       const int celId = SimTHit->getCellID0() ;
       
-      const double *pos ;
-      pos =  SimTHit->getPosition() ;  
-      
-      double smearedPos[3];
-      
-      MarlinTrk::GearExtensions::MeasurementSurface* ms = MarlinTrk::GearExtensions::MeasurementSurfaceStore::Instance().GetMeasurementSurface( SimTHit->getCellID0() );
-      
-      CLHEP::Hep3Vector globalPoint(pos[0],pos[1],pos[2]);
-      CLHEP::Hep3Vector localPoint = ms->getCoordinateSystem()->getLocalPoint(globalPoint);
-      CLHEP::Hep3Vector localPointSmeared = localPoint;
-      
-      
+     
       encoder.setValue(celId) ;
       int side   = encoder[lcio::ILDCellID0::side];
       int layer  = encoder[lcio::ILDCellID0::layer];
@@ -196,7 +188,18 @@ void SimplePlanarTestDigiProcessor::processEvent( LCEvent * evt ) {
       streamlog_out( DEBUG3 ) << "sensorNumber = " << sensor << std::endl ;
       
       
-      float edep = SimTHit->getEDep() ;
+  
+      const double *pos ;
+      pos =  SimTHit->getPosition() ;  
+      
+      double smearedPos[3];
+      
+      MarlinTrk::GearExtensions::MeasurementSurface* ms = MarlinTrk::GearExtensions::MeasurementSurfaceStore::Instance().GetMeasurementSurface( SimTHit->getCellID0() );
+      
+      CLHEP::Hep3Vector globalPoint(pos[0],pos[1],pos[2]);
+      CLHEP::Hep3Vector localPoint = ms->getCoordinateSystem()->getLocalPoint(globalPoint);
+      CLHEP::Hep3Vector localPointSmeared = localPoint;
+      
       
       streamlog_out(DEBUG3) <<"Position of hit before smearing global: ( "<<pos[0]<<" "<<pos[1]<<" "<<pos[2]<< " ) "
                             << "local: ( " << localPoint.x() << " " << localPoint.y() << " " << localPoint.z() << " )" << endl;
@@ -207,6 +210,7 @@ void SimplePlanarTestDigiProcessor::processEvent( LCEvent * evt ) {
         streamlog_out( ERROR )<< "Hit local: ( " << localPoint.x() << " " << localPoint.y() << " " << localPoint.z() << " )"
                               << " is not within boundaries. Hit is skipped.\n";
         
+        nDismissedHits++;
         continue;
         
       }
@@ -287,7 +291,7 @@ void SimplePlanarTestDigiProcessor::processEvent( LCEvent * evt ) {
       trkHit->setdU( _resU ) ;
       trkHit->setdV( _resV ) ;
       
-      trkHit->setEDep( edep ) ;
+      trkHit->setEDep( SimTHit->getEDep() );
       
       trkhitVec->addElement( trkHit ) ; 
       
@@ -300,7 +304,7 @@ void SimplePlanarTestDigiProcessor::processEvent( LCEvent * evt ) {
       rel->setWeight( 1.0 );
       relCol->addElement(rel);
       
-      
+      nCreatedHits++;
       streamlog_out(DEBUG3) << "-------------------------------------------------------" << std::endl;
       
     }      
@@ -308,6 +312,8 @@ void SimplePlanarTestDigiProcessor::processEvent( LCEvent * evt ) {
     
     evt->addCollection( trkhitVec , _outColName ) ;
     evt->addCollection( relCol , _outRelColName ) ;
+    
+    streamlog_out(DEBUG4) << "Created " << nCreatedHits << " hits, " << nDismissedHits << " hits got dismissed for being out of boundary\n";
     
   }
   _nEvt ++ ;
