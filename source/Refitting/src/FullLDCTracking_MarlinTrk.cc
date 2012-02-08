@@ -2913,6 +2913,8 @@ void FullLDCTracking_MarlinTrk::AddNotAssignedHits() {
   
   if (_assignSITHits>0) { // Treatment of left-over SIT hits 
     
+    streamlog_out(DEBUG4) << "Assign left-over SIT hits ********************************* #### Total Number of SIT hits: " << _allSITHits.size() << std::endl;
+    
     std::vector<TrackerHitExtendedVec> nonAssignedSITHits;    
     nonAssignedSITHits.resize(_nLayersSIT);
     
@@ -2936,8 +2938,11 @@ void FullLDCTracking_MarlinTrk::AddNotAssignedHits() {
         }
       }
     }       
-    
+        
     for (int iL=_nLayersSIT-1;iL>=0;--iL) { // reverse loop over layers in Si
+      
+      streamlog_out(DEBUG4) << "#### Number of left-over hits in layer : " << iL << " = " << nonAssignedSITHits[iL].size() << std::endl; 
+      
       TrackerHitExtendedVec hitVec = nonAssignedSITHits[iL];
       AssignSiHitsToTracks(hitVec,
                            _distCutForSITHits);
@@ -2945,6 +2950,8 @@ void FullLDCTracking_MarlinTrk::AddNotAssignedHits() {
   }
   
   if (_assignFTDHits>0) { // Treatment of left-over FTD hits
+    
+    streamlog_out(DEBUG4) << "Assign left-over FTD hits ********************************* #### Total Number of FTD hits: " << _allFTDHits.size() << std::endl;
     
     std::vector<TrackerHitExtendedVec> nonAssignedFTDHits;
     nonAssignedFTDHits.resize(_nLayersFTD);
@@ -2980,6 +2987,9 @@ void FullLDCTracking_MarlinTrk::AddNotAssignedHits() {
       }
     }
     for (int iL=_nLayersFTD-1;iL>=0;--iL) {
+
+      streamlog_out(DEBUG4) << "#### Number of left-over hits in layer : " << iL << " = " << nonAssignedFTDHits[iL].size() << std::endl; 
+
       if ( nonAssignedFTDHits[iL].size()!=0 ) {
         
         TrackerHitExtendedVec hitVec = nonAssignedFTDHits[iL];
@@ -2994,8 +3004,9 @@ void FullLDCTracking_MarlinTrk::AddNotAssignedHits() {
   
   if (_assignVTXHits>0) { // Treatment of left-over VTX hits
     
-     streamlog_out(DEBUG4) << "Assign VXD hits *********************************" << std::endl;
+    streamlog_out(DEBUG4) << "Assign left-over VXD hits ********************************* #### Total Number of VXD hits: " << _allVTXHits.size() << std::endl;
     
+
     std::vector<TrackerHitExtendedVec> nonAssignedVTXHits;
     nonAssignedVTXHits.resize(_nLayersVTX);
     
@@ -3018,13 +3029,15 @@ void FullLDCTracking_MarlinTrk::AddNotAssignedHits() {
       }
     }
     for (int iL=_nLayersVTX-1;iL>=0;--iL) {
+      streamlog_out(DEBUG4) << "#### Number of left-over hits in layer : " << iL << " = " << nonAssignedVTXHits[iL].size() << std::endl; 
       TrackerHitExtendedVec hitVec = nonAssignedVTXHits[iL];
       AssignSiHitsToTracks(hitVec,
                            _distCutForVTXHits);     
     }
   }
   
-  streamlog_out(DEBUG4) << "Assign TPC hits *********************************" << std::endl;
+
+  streamlog_out(DEBUG4) << "Assign left-over TPC hits ********************************* #### Total Number of TPC hits: " << _allTPCHits.size() << std::endl;
   
   if (_assignTPCHits) {// Treatment of left-over TPC hits
     TrackerHitExtendedVec nonAssignedTPCHits;
@@ -3036,6 +3049,9 @@ void FullLDCTracking_MarlinTrk::AddNotAssignedHits() {
         nonAssignedTPCHits.push_back(trkHitExt);
       }
     }
+
+    streamlog_out(DEBUG4) << "#### Number of left-over hits = " << nonAssignedTPCHits.size() << std::endl; 
+
     AssignTPCHitsToTracks(nonAssignedTPCHits,
                           _distCutForTPCHits);
   }
@@ -3532,6 +3548,8 @@ void FullLDCTracking_MarlinTrk::AssignTPCHitsToTracks(TrackerHitExtendedVec hitV
 
 void FullLDCTracking_MarlinTrk::AssignSiHitsToTracks(TrackerHitExtendedVec hitVec,
                                                      float dcut) {
+  
+  streamlog_out(DEBUG2) << "AssignSiHitsToTracks: number of hits to try " << hitVec.size() << " using dcut = " << dcut << std::endl;
   
   int nHits = int(hitVec.size());
   int nTrk = int(_allNonCombinedTPCTracks.size());

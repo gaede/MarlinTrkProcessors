@@ -20,17 +20,16 @@
 #include "marlin/Global.h"
 #include <UTIL/ILDConf.h>
 
-#include "MarlinTrk/util/MeasurementSurfaceStore.h"
-#include "MarlinTrk/util/MeasurementSurface.h"
-#include "MarlinTrk/util/ICoordinateSystem.h"
-#include "MarlinTrk/util/CartesianCoordinateSystem.h"
+#include "gear/gearsurf/MeasurementSurfaceStore.h"
+#include "gear/gearsurf/MeasurementSurface.h"
+#include "gear/gearsurf/ICoordinateSystem.h"
+#include "gear/gearsurf/CartesianCoordinateSystem.h"
 
 #include <cmath>
 #include <sstream>
 
 using namespace lcio ;
 using namespace marlin ;
-using namespace MarlinTrk::GearExtensions;
 using namespace CLHEP;
 
 SpacePointBuilder aSpacePointBuilder ;
@@ -74,8 +73,6 @@ void SpacePointBuilder::init() {
   _nRun = 0 ;
   _nEvt = 0 ;
 
- 
-  MarlinTrk::GearExtensions::MeasurementSurfaceStore::Instance().initialise(Global::GEAR);
 
 }
 
@@ -232,8 +229,8 @@ TrackerHitImpl* SpacePointBuilder::createSpacePoint( TrackerHitPlane* a , Tracke
   double z1 = p1[2];
   Hep3Vector P1( x1,y1,z1 );
   
-  MeasurementSurface* ms1 = MeasurementSurfaceStore::Instance().GetMeasurementSurface( a->getCellID0() );
-  CartesianCoordinateSystem* ccs1 = dynamic_cast< CartesianCoordinateSystem* >( ms1->getCoordinateSystem() );
+  GearSurfaces::MeasurementSurface* ms1 = GearSurfaces::MeasurementSurfaceStore::Instance().GetMeasurementSurface( a->getCellID0() );
+  GearSurfaces::CartesianCoordinateSystem* ccs1 = dynamic_cast< GearSurfaces::CartesianCoordinateSystem* >( ms1->getCoordinateSystem() );
   CLHEP::Hep3Vector W1 = ccs1->getLocalZAxis(); // the vector W of the local coordinate system the measurement surface has
   CLHEP::Hep3Vector V1 = ccs1->getLocalYAxis(); // the vector W of the local coordinate system the measurement surface has
   
@@ -243,8 +240,8 @@ TrackerHitImpl* SpacePointBuilder::createSpacePoint( TrackerHitPlane* a , Tracke
   double z2 = p2[2];
   Hep3Vector P2( x2,y2,z2 );
   
-  MeasurementSurface* ms2 = MeasurementSurfaceStore::Instance().GetMeasurementSurface( b->getCellID0() );
-  CartesianCoordinateSystem* ccs2 = dynamic_cast< CartesianCoordinateSystem* >( ms2->getCoordinateSystem() );
+  GearSurfaces::MeasurementSurface* ms2 = GearSurfaces::MeasurementSurfaceStore::Instance().GetMeasurementSurface( b->getCellID0() );
+  GearSurfaces::CartesianCoordinateSystem* ccs2 = dynamic_cast< GearSurfaces::CartesianCoordinateSystem* >( ms2->getCoordinateSystem() );
   CLHEP::Hep3Vector W2 = ccs2->getLocalZAxis(); // the vector W of the local coordinate system the measurement surface has
   CLHEP::Hep3Vector V2 = ccs2->getLocalYAxis(); // the vector W of the local coordinate system the measurement surface has
   
@@ -369,7 +366,8 @@ TrackerHitImpl* SpacePointBuilder::createSpacePointOld( TrackerHitPlane* a , Tra
   
   // Check if the new hit is within the boundary
   CLHEP::Hep3Vector globalPoint(x,y,z);
-  MarlinTrk::GearExtensions::MeasurementSurface* ms = MarlinTrk::GearExtensions::MeasurementSurfaceStore::Instance().GetMeasurementSurface( a->getCellID0() );
+  //  GearSurfaces::MeasurementSurface* ms = GearSurfaces::MeasurementSurfaceStore::Instance().GetMeasurementSurface( a->getCellID0() );
+  GearSurfaces::MeasurementSurface* ms = NULL;
   CLHEP::Hep3Vector localPoint = ms->getCoordinateSystem()->getLocalPoint(globalPoint);
   localPoint.setZ( 0. ); // we set w to 0 so it is in the plane ( we are only interested if u and v are in or out of range, to exclude w from the check it is set to 0)
   if( !ms->isLocalInBoundary( localPoint ) ){

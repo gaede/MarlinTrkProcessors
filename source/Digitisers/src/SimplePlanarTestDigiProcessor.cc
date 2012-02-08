@@ -18,10 +18,10 @@
 #include <gear/ZPlanarParameters.h>
 #include <gear/ZPlanarLayerLayout.h>
 
-#include "MarlinTrk/util/MeasurementSurfaceStore.h"
-#include "MarlinTrk/util/MeasurementSurface.h"
-#include "MarlinTrk/util/ICoordinateSystem.h"
-#include "MarlinTrk/util/CartesianCoordinateSystem.h"
+#include "gear/gearsurf/MeasurementSurfaceStore.h"
+#include "gear/gearsurf/MeasurementSurface.h"
+#include "gear/gearsurf/ICoordinateSystem.h"
+#include "gear/gearsurf/CartesianCoordinateSystem.h"
 
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
@@ -100,7 +100,6 @@ void SimplePlanarTestDigiProcessor::init() {
   _rng = gsl_rng_alloc(gsl_rng_ranlxs2);
   Global::EVENTSEEDER->registerProcessor(this);
   
-  MarlinTrk::GearExtensions::MeasurementSurfaceStore::Instance().initialise(Global::GEAR);
   
 }
 
@@ -194,8 +193,9 @@ void SimplePlanarTestDigiProcessor::processEvent( LCEvent * evt ) {
       
       double smearedPos[3];
       
-      MarlinTrk::GearExtensions::MeasurementSurface* ms = MarlinTrk::GearExtensions::MeasurementSurfaceStore::Instance().GetMeasurementSurface( SimTHit->getCellID0() );
+      //      GearSurfaces::MeasurementSurface* ms = GearSurfaces::MeasurementSurfaceStore::Instance().GetMeasurementSurface( SimTHit->getCellID0() );
       
+      GearSurfaces::MeasurementSurface* ms = NULL;
       CLHEP::Hep3Vector globalPoint(pos[0],pos[1],pos[2]);
       CLHEP::Hep3Vector localPoint = ms->getCoordinateSystem()->getLocalPoint(globalPoint);
       CLHEP::Hep3Vector localPointSmeared = localPoint;
@@ -268,7 +268,7 @@ void SimplePlanarTestDigiProcessor::processEvent( LCEvent * evt ) {
       
       trkHit->setPosition( smearedPos ) ;
       
-      MarlinTrk::GearExtensions::CartesianCoordinateSystem* cartesian = dynamic_cast< MarlinTrk::GearExtensions::CartesianCoordinateSystem* >( ms->getCoordinateSystem() ); 
+      GearSurfaces::CartesianCoordinateSystem* cartesian = dynamic_cast< GearSurfaces::CartesianCoordinateSystem* >( ms->getCoordinateSystem() ); 
       CLHEP::Hep3Vector uVec = cartesian->getLocalXAxis();
       CLHEP::Hep3Vector vVec = cartesian->getLocalYAxis();
       

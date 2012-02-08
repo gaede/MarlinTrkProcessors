@@ -17,10 +17,11 @@
 #include <gear/ZPlanarParameters.h>
 #include <gear/ZPlanarLayerLayout.h>
 
-#include "MarlinTrk/util/MeasurementSurfaceStore.h"
-#include "MarlinTrk/util/MeasurementSurface.h"
-#include "MarlinTrk/util/ICoordinateSystem.h"
-#include "MarlinTrk/util/CartesianCoordinateSystem.h"
+#include "gear/gearsurf/MeasurementSurfaceStore.h"
+
+#include "gear/gearsurf/MeasurementSurface.h"
+#include "gear/gearsurf/ICoordinateSystem.h"
+#include "gear/gearsurf/CartesianCoordinateSystem.h"
 
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
@@ -110,7 +111,6 @@ void SimplePlanarDigiProcessor::init() {
   _rng = gsl_rng_alloc(gsl_rng_ranlxs2);
   Global::EVENTSEEDER->registerProcessor(this);
   
-  MarlinTrk::GearExtensions::MeasurementSurfaceStore::Instance().initialise(Global::GEAR);
   
 }
 
@@ -204,17 +204,14 @@ void SimplePlanarDigiProcessor::processEvent( LCEvent * evt ) {
       
       double smearedPos[3];
 
-      MarlinTrk::GearExtensions::MeasurementSurface* ms = MarlinTrk::GearExtensions::MeasurementSurfaceStore::Instance().GetMeasurementSurface( SimTHit->getCellID0() );
-
-      CLHEP::Hep3Vector globalPoint(pos[0],pos[1],pos[2]);
-      CLHEP::Hep3Vector localPoint = ms->getCoordinateSystem()->getLocalPoint(globalPoint);
-      
+       
     
       gear::Vector3D hitvec(pos[0],pos[1],pos[2]);
       //      gear::Vector3D smearedhitvec(pos[0],pos[1],pos[2]);
       
       int layerNumber = 0 ;
       int ladderNumber = 0 ;
+
       
       encoder.setValue(celId) ;
       
@@ -224,8 +221,12 @@ void SimplePlanarDigiProcessor::processEvent( LCEvent * evt ) {
         encoder.setValue(celId) ;
         layerNumber  = encoder[lcio::ILDCellID0::layer] ;
         ladderNumber = encoder[lcio::ILDCellID0::module] ;
+        int side = encoder[lcio::ILDCellID0::side] ;
+        int sensor = encoder[lcio::ILDCellID0::sensor] ;
         streamlog_out( DEBUG3 ) << "layerNumber = " <<  layerNumber << std::endl ;
         streamlog_out( DEBUG3 ) << "ladderNumber = " << ladderNumber << std::endl ;
+        streamlog_out( DEBUG3 ) << "side = " << side << std::endl ;
+        streamlog_out( DEBUG3 ) << "sensor = " << sensor << std::endl ;
         
       }
       else{
@@ -242,6 +243,12 @@ void SimplePlanarDigiProcessor::processEvent( LCEvent * evt ) {
         exit(1);
       }
 
+//      GearSurfaces::MeasurementSurface* ms = GearSurfaces::MeasurementSurfaceStore::Instance().GetMeasurementSurface( SimTHit->getCellID0() );
+      
+      GearSurfaces::MeasurementSurface* ms;
+      CLHEP::Hep3Vector globalPoint(pos[0],pos[1],pos[2]);
+      CLHEP::Hep3Vector localPoint = ms->getCoordinateSystem()->getLocalPoint(globalPoint);
+      
       
       float edep = SimTHit->getEDep() ;
       
@@ -395,7 +402,7 @@ void SimplePlanarDigiProcessor::processEvent( LCEvent * evt ) {
       trkHit->setPosition( smearedPos ) ;
 
       
-      MarlinTrk::GearExtensions::CartesianCoordinateSystem* cartesian = dynamic_cast< MarlinTrk::GearExtensions::CartesianCoordinateSystem* >( ms->getCoordinateSystem() ); 
+      GearSurfaces::CartesianCoordinateSystem* cartesian = dynamic_cast< GearSurfaces::CartesianCoordinateSystem* >( ms->getCoordinateSystem() ); 
       CLHEP::Hep3Vector uVec = cartesian->getLocalXAxis();
       CLHEP::Hep3Vector vVec = cartesian->getLocalYAxis();
       
