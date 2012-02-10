@@ -20,6 +20,9 @@
 #include "marlin/Global.h"
 #include <UTIL/ILDConf.h>
 
+//FIXME:SJA: if we want the surface store to be filled we need to create an instance of MarlinTrk implemented with KalTest/KalDet
+#include "MarlinTrk/Factory.h"
+
 #include "gear/gearsurf/MeasurementSurfaceStore.h"
 #include "gear/gearsurf/MeasurementSurface.h"
 #include "gear/gearsurf/ICoordinateSystem.h"
@@ -74,6 +77,22 @@ void SpacePointBuilder::init() {
   _nEvt = 0 ;
 
 
+  //FIXME:SJA: if we want the surface store to be filled we need to create an instance of MarlinTrk implemented with KalTest/KalDet
+  MarlinTrk::IMarlinTrkSystem* trksystem =  MarlinTrk::Factory::createMarlinTrkSystem( "KalTest" , marlin::Global::GEAR , "" ) ;
+  
+  
+  if( trksystem == 0 ) {
+    
+    throw EVENT::Exception( std::string("  Cannot initialize MarlinTrkSystem of Type: ") + std::string("KalTest" )  ) ;
+    
+  }
+  
+  trksystem->init() ;  
+  
+  //FIXME:SJA gear surface store has now been filled so we can dispose of the MarlinTrkSystem
+  delete trksystem;
+
+  
 }
 
 
@@ -229,8 +248,10 @@ TrackerHitImpl* SpacePointBuilder::createSpacePoint( TrackerHitPlane* a , Tracke
   double z1 = p1[2];
   Hep3Vector P1( x1,y1,z1 );
   
-  GearSurfaces::MeasurementSurface* ms1 = GearSurfaces::MeasurementSurfaceStore::Instance().GetMeasurementSurface( a->getCellID0() );
-  GearSurfaces::CartesianCoordinateSystem* ccs1 = dynamic_cast< GearSurfaces::CartesianCoordinateSystem* >( ms1->getCoordinateSystem() );
+  
+  
+  gear::MeasurementSurface const* ms1 = Global::GEAR->getMeasurementSurfaceStore().GetMeasurementSurface( a->getCellID0() );
+  gear::CartesianCoordinateSystem* ccs1 = dynamic_cast< gear::CartesianCoordinateSystem* >( ms1->getCoordinateSystem() );
   CLHEP::Hep3Vector W1 = ccs1->getLocalZAxis(); // the vector W of the local coordinate system the measurement surface has
   CLHEP::Hep3Vector V1 = ccs1->getLocalYAxis(); // the vector W of the local coordinate system the measurement surface has
   
@@ -240,8 +261,8 @@ TrackerHitImpl* SpacePointBuilder::createSpacePoint( TrackerHitPlane* a , Tracke
   double z2 = p2[2];
   Hep3Vector P2( x2,y2,z2 );
   
-  GearSurfaces::MeasurementSurface* ms2 = GearSurfaces::MeasurementSurfaceStore::Instance().GetMeasurementSurface( b->getCellID0() );
-  GearSurfaces::CartesianCoordinateSystem* ccs2 = dynamic_cast< GearSurfaces::CartesianCoordinateSystem* >( ms2->getCoordinateSystem() );
+  gear::MeasurementSurface const* ms2 = Global::GEAR->getMeasurementSurfaceStore().GetMeasurementSurface( b->getCellID0() );
+  gear::CartesianCoordinateSystem* ccs2 = dynamic_cast< gear::CartesianCoordinateSystem* >( ms2->getCoordinateSystem() );
   CLHEP::Hep3Vector W2 = ccs2->getLocalZAxis(); // the vector W of the local coordinate system the measurement surface has
   CLHEP::Hep3Vector V2 = ccs2->getLocalYAxis(); // the vector W of the local coordinate system the measurement surface has
   
@@ -366,8 +387,7 @@ TrackerHitImpl* SpacePointBuilder::createSpacePointOld( TrackerHitPlane* a , Tra
   
   // Check if the new hit is within the boundary
   CLHEP::Hep3Vector globalPoint(x,y,z);
-  //  GearSurfaces::MeasurementSurface* ms = GearSurfaces::MeasurementSurfaceStore::Instance().GetMeasurementSurface( a->getCellID0() );
-  GearSurfaces::MeasurementSurface* ms = NULL;
+  //  gear::MeasurementSurface* ms = gear::MeasurementSurfaceStore::Instance().GetMeasurementSurface( a->getCellID0() );
   CLHEP::Hep3Vector localPoint = ms->getCoordinateSystem()->getLocalPoint(globalPoint);
   localPoint.setZ( 0. ); // we set w to 0 so it is in the plane ( we are only interested if u and v are in or out of range, to exclude w from the check it is set to 0)
   if( !ms->isLocalInBoundary( localPoint ) ){
