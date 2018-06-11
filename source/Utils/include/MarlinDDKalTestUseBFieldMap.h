@@ -41,8 +41,8 @@ protected:
       _det->field().magneticField( posV  , bfieldV  ) ;
       
       //      streamlog_out( DEBUG ) 
-      std::cout << " GetFieldD( " << x*dd4hep::mm <<", "  << y*dd4hep::mm << ", " <<  z*dd4hep::mm  << " ) -> "
-		<<  bfieldV[0]/dd4hep::tesla << ", " << bfieldV[1]/dd4hep::tesla << ", " << bfieldV[2]/dd4hep::tesla << std::endl ;
+//      std::cout << " GetFieldD( " << x*dd4hep::mm <<", "  << y*dd4hep::mm << ", " <<  z*dd4hep::mm  << " ) -> "
+//		<<  bfieldV[0]/dd4hep::tesla << ", " << bfieldV[1]/dd4hep::tesla << ", " << bfieldV[2]/dd4hep::tesla << std::endl ;
 
       
       return TEveVectorD( bfieldV[0]/dd4hep::tesla , bfieldV[1]/dd4hep::tesla, bfieldV[2]/dd4hep::tesla ) ;
