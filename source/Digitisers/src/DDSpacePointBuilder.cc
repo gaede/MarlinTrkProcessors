@@ -5,7 +5,6 @@
 #include "EVENT/LCCollection.h"
 #include "EVENT/SimTrackerHit.h"
 #include "IMPL/LCCollectionVec.h"
-#include "IMPL/TrackerHitImpl.h"
 #include "IMPL/TrackerHitPlaneImpl.h"
 #include "IMPL/LCFlagImpl.h"
 #include "IMPL/LCRelationImpl.h"
@@ -37,7 +36,7 @@ DDSpacePointBuilder aDDSpacePointBuilder ;
 DDSpacePointBuilder::DDSpacePointBuilder() : Processor("DDSpacePointBuilder") {
 
    // modify processor description
-   _description = "DDSpacePointBuilder combine si-strip measurements into 3D spacepoints (1TrackerHitPlanar+1TrackHitPlanar = 1 TrackerHit), that can be used by reconstruction" ;
+   _description = "DDSpacePointBuilder combine si-strip measurements into 3D spacepoints (1TrackerHitPlane+1TrackHitPlane = 1 TrackerHitPlane), that can be used by reconstruction" ;
 
 
    // register steering parameters: name, description, class-variable, default value
@@ -53,7 +52,7 @@ DDSpacePointBuilder::DDSpacePointBuilder() : Processor("DDSpacePointBuilder") {
                            _TrackerHitSimHitRelCollection,
                            std::string("FTDTrackerHitRelations")); 
    
-   registerOutputCollection(LCIO::TRACKERHIT,
+   registerOutputCollection(LCIO::TRACKERHITPLANE,
                             "SpacePointsCollection",
                             "SpacePointsCollection",
                             _SpacePointsCollection,
@@ -301,12 +300,12 @@ void DDSpacePointBuilder::processEvent( LCEvent * evt ) {
             // add tolerence 
             strip_length_mm = strip_length_mm * (1.0 + _striplength_tolerance);
             
-            //TrackerHitImpl* spacePoint = createSpacePoint( hitFront, hitBack, strip_length_mm, surfMap);
-	    TrackerHitImpl* spacePoint = createSpacePoint( hitFront, hitBack, strip_length_mm);
+            //TrackerHitPlaneImpl* spacePoint = createSpacePoint( hitFront, hitBack, strip_length_mm, surfMap);
+	    TrackerHitPlaneImpl* spacePoint = createSpacePoint( hitFront, hitBack, strip_length_mm);
 
             if ( spacePoint != NULL ) { 
 
-              CellIDEncoder<TrackerHitImpl> cellid_encoder( LCTrackerCellID::encoding_string() , spCol );
+              CellIDEncoder<TrackerHitPlaneImpl> cellid_encoder( LCTrackerCellID::encoding_string() , spCol );
               cellid_encoder.setValue( cellID0 ); //give the new hit, the CellID0 of the front hit
               cellid_encoder.setCellID( spacePoint ) ;
               
@@ -411,8 +410,8 @@ void DDSpacePointBuilder::end(){
    
 }
 
-//TrackerHitImpl* DDSpacePointBuilder::createSpacePoint( TrackerHitPlane* a , TrackerHitPlane* b, double stripLength, const dd4hep::rec::SurfaceMap* surfMap ){
-TrackerHitImpl* DDSpacePointBuilder::createSpacePoint( TrackerHitPlane* a , TrackerHitPlane* b, double stripLength ){  
+//TrackerHitPlaneImpl* DDSpacePointBuilder::createSpacePoint( TrackerHitPlane* a , TrackerHitPlane* b, double stripLength, const dd4hep::rec::SurfaceMap* surfMap ){
+TrackerHitPlaneImpl* DDSpacePointBuilder::createSpacePoint( TrackerHitPlane* a , TrackerHitPlane* b, double stripLength ){  
   const double* pa = a->getPosition();
   double xa = pa[0];
   double ya = pa[1];
@@ -603,7 +602,7 @@ TrackerHitImpl* DDSpacePointBuilder::createSpacePoint( TrackerHitPlane* a , Trac
   */
   
   //Create the new TrackerHit
-  TrackerHitImpl* spacePoint = new TrackerHitImpl();
+  TrackerHitPlaneImpl* spacePoint = new TrackerHitPlaneImpl();
   
   double pos[3] = {point.x(), point.y(), point.z() };
   spacePoint->setPosition(  pos  ) ;
@@ -620,46 +619,62 @@ TrackerHitImpl* DDSpacePointBuilder::createSpacePoint( TrackerHitPlane* a , Trac
     return NULL; //measurement errors are not equal don't create a spacepoint
   }
  
+//fg  double du2 = du_a*du_a;
+//fg
+//fg  // rotate the strip system back to double-layer wafer system
+//fg  CLHEP::Hep3Vector u_sensor = UA + UB;
+//fg  CLHEP::Hep3Vector v_sensor = VA + VB;
+//fg  CLHEP::Hep3Vector w_sensor = WA + WB;
+//fg  
+//fg  CLHEP::HepRotation rot_sensor( u_sensor, v_sensor, w_sensor );
+//fg  CLHEP::HepMatrix rot_sensor_matrix;
+//fg  rot_sensor_matrix = rot_sensor;
+//fg  
+//fg  double cos2_alpha = VA.cos2Theta(v_sensor) ; // alpha = strip angle   
+//fg  double sin2_alpha = 1 - cos2_alpha ; 
+//fg  
+//fg  CLHEP::HepSymMatrix cov_plane(3,0); // u,v,w
+//fg  
+//fg  cov_plane(1,1) = (0.5 * du2) / cos2_alpha;
+//fg  cov_plane(2,2) = (0.5 * du2) / sin2_alpha;
+//fg  
+//fg  streamlog_out(DEBUG3) << "\t cov_plane  = " << cov_plane << "\n\n";  
+//fg  streamlog_out(DEBUG3) << "\tstrip_angle = " << VA.angle(VB)/(M_PI/180) / 2.0 << " degrees \n\n";
+//fg  
+//fg  CLHEP::HepSymMatrix cov_xyz= cov_plane.similarity(rot_sensor_matrix);
+//fg  
+//fg  streamlog_out(DEBUG3) << "\t cov_xyz  = " << cov_xyz << "\n\n";
+//fg  
+//fg  EVENT::FloatVec cov( 9 )  ; 
+//fg  int icov = 0 ;
+//fg  
+//fg  for(int irow=0; irow<3; ++irow ){
+//fg    for(int jcol=0; jcol<irow+1; ++jcol){
+//fg      //      streamlog_out(DEBUG3) << "row = " << irow << " col = " << jcol << std::endl ;
+//fg      cov[icov] = cov_xyz[irow][jcol] ;
+//fg//      streamlog_out(DEBUG3) << "cov["<< icov << "] = " << cov[icov] << std::endl ;
+//fg      ++icov ;
+//fg    }
+//fg  }
+//fg
+//fg  spacePoint->setCovMatrix(cov);
+//fg
+
+//fg: fill U,V and dU,dV in planar hit instead
+
+  CLHEP::Hep3Vector uvec = (UA + UB).unit() ;
+  CLHEP::Hep3Vector vvec = uvec.cross( WA ) ;    // v = u x w
+    
+  spacePoint->setU( uvec.theta(), uvec.phi()  ) ;
+  spacePoint->setV( vvec.theta(), vvec.phi()  ) ;
   
-  double du2 = du_a*du_a;
-  
-  // rotate the strip system back to double-layer wafer system
-  CLHEP::Hep3Vector u_sensor = UA + UB;
-  CLHEP::Hep3Vector v_sensor = VA + VB;
-  CLHEP::Hep3Vector w_sensor = WA + WB;
-  
-  CLHEP::HepRotation rot_sensor( u_sensor, v_sensor, w_sensor );
-  CLHEP::HepMatrix rot_sensor_matrix;
-  rot_sensor_matrix = rot_sensor;
-  
-  double cos2_alpha = VA.cos2Theta(v_sensor) ; // alpha = strip angle   
-  double sin2_alpha = 1 - cos2_alpha ; 
-  
-  CLHEP::HepSymMatrix cov_plane(3,0); // u,v,w
-  
-  cov_plane(1,1) = (0.5 * du2) / cos2_alpha;
-  cov_plane(2,2) = (0.5 * du2) / sin2_alpha;
-  
-  streamlog_out(DEBUG3) << "\t cov_plane  = " << cov_plane << "\n\n";  
-  streamlog_out(DEBUG3) << "\tstrip_angle = " << VA.angle(VB)/(M_PI/180) / 2.0 << " degrees \n\n";
-  
-  CLHEP::HepSymMatrix cov_xyz= cov_plane.similarity(rot_sensor_matrix);
-  
-  streamlog_out(DEBUG3) << "\t cov_xyz  = " << cov_xyz << "\n\n";
-  
-  EVENT::FloatVec cov( 9 )  ; 
-  int icov = 0 ;
-  
-  for(int irow=0; irow<3; ++irow ){
-    for(int jcol=0; jcol<irow+1; ++jcol){
-      //      streamlog_out(DEBUG3) << "row = " << irow << " col = " << jcol << std::endl ;
-      cov[icov] = cov_xyz[irow][jcol] ;
-//      streamlog_out(DEBUG3) << "cov["<< icov << "] = " << cov[icov] << std::endl ;
-      ++icov ;
-    }
-  }
-  
-  spacePoint->setCovMatrix(cov);
+  const double alpha = fabs(UB.angle(UA)) / 2. ;
+
+  double sq2inv = 1./sqrt( 2. ) ;
+
+  spacePoint->setdU( sq2inv * du_a / cos( alpha ) ) ;
+  spacePoint->setdV( sq2inv * du_a / sin( alpha ) ) ;
+
 
   const auto pointTime = std::min(a->getTime(), b->getTime());
   spacePoint->setTime(pointTime);
